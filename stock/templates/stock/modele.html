@@ -1,0 +1,128 @@
+
+{% extends 'base.html' %}
+
+
+{% block content %}
+<script>
+    function home() {    window.location.href="/";    }
+
+    function ajouter() {
+         let valeur = document.getElementById("nomModele").value;
+         let pref= document.getElementById("pref").checked;
+         sendMessage(socket,`AJOUT_MODELE${IDFAMILLE}${valeur}${pref}`);
+    }
+
+    function modifier() {
+        let valeur = document.getElementById("nomModele").value;
+        let pref= document.getElementById("pref").checked;
+        let pref2= document.getElementById("pref2").checked;
+        sendMessage(socket,`MODIF_MODELE${IDFAMILLE}${IDMODELE}${valeur}${pref}${pref2}`); }
+
+    function supprimer() {
+        let pref= document.getElementById("pref").checked;
+        sendMessage(socket,`SUPPRIME_MODELE${IDFAMILLE}${IDMODELE}${pref}`); }
+
+    function doPref() {
+        console.log("doPref");
+            let pref= document.getElementById("pref").checked;
+            sendMessage(socket,`INIT_MODELES${IDFAMILLE}${pref}`);
+    }
+</script>
+
+<div class="w3-bar w3-black">
+        <button class="w3-bar-item w3-button" onclick="home(); ">Home</button>
+        <button class="w3-bar-item w3-button">Gestion Modèles</button>
+</div>
+<div class="w3-panel w3-small w3-card-4 w3-round-large w3-white" style="margin:20px; min-width:1000px; max-width:1000px; height:70%; display:flex">
+    <div class="w3-border" id="listeFamille" style="margin-top:15px; margin-bottom:15px; width:30%; "> </div>
+
+    <div class="w3-panel w3-small w3-card  w3-round-large w3-border" style="margin:15px; width:80%; max-width:800px;  display:flex">
+
+            <div class="w3-bar" style="width:50%">
+                <p>
+                    <label for="pref" style="top:10px;">Afficher uniquement les Modèles préférés: </label>
+                    <input type="checkbox" id="pref" name="pref" onclick="doPref();">
+                </p>
+                 <div class="w3-border w3-card" id="listeModele" style="margin:15px; margin-left:5px;  height:80%; width:90%; "> </div>
+            </div>
+            <div class="w3-border w3-card"  style="margin-top: 100px; width:50%; height:200px;  display:flex; flex-direction:column">
+                <div class="w3-bar w3-black">
+                    <button class="w3-bar-item w3-button" onclick="ajouter(); ">Ajouter</button>
+                    <button class="w3-bar-item w3-button" onclick="modifier();">Modifier</button>
+                    <button class="w3-bar-item w3-button" onclick="supprimer();">Supprimer</button>
+                </div>
+                <div class="w3-panel">
+
+                     <label for="pref2">Modèle préféré:</label>
+                     <input type="checkbox" id="pref2" name="pref2">
+
+                    <p>NOM:</p>
+                    <input class="w3-block w3-light-grey" type="text" id="nomModele"></input>
+                </div>
+                <button class="w3-block w3-black w3-hover-red" style="flex:1; position:relative; bottom:0;">Propriétés</button>
+            </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block script %}
+
+    window.addEventListener("onSelect", (event) => { listboxSelect(event.state); });
+    window.addEventListener("onClear", (event) => { listboxClear(event.state); });
+
+    window.addEventListener("load", (event) => {
+        var liste1="";
+        var liste2="";
+        var socket="";
+        init();
+   });
+
+   function listboxClear(state) {
+       if (state.var=="liste1") IDFAMILLE=-1;
+       IDMODELE=-1;
+<!--       console.log("CLEAR: "+state.var+" "+IDFAMILLE+" "+IDMODELE);-->
+       document.getElementById("nomModele").value="";
+       document.getElementById("pref2").checked=false;
+    }
+
+   function listboxSelect(state) {
+        if (state.var=="liste1") {
+            let pref = document.getElementById("pref").checked;
+            IDFAMILLE=state.id;
+            sendMessage(socket,`INIT_MODELES${state.id}${pref}`);
+            }
+        if (state.var=="liste2") {
+            console.log("SELECT: "+state);
+            IDMODELE=state.id;
+            document.getElementById("nomModele").value=state.nom;
+            document.getElementById("pref2").checked= (state.pref==1);
+        }
+   }
+
+   function init()  {
+        socket = new WebSocket('ws://' + window.location.host + '/ws/modeles/');
+        socket.onmessage = receive ;
+        var IDFAMILLE=-1;
+        var IDMODELE=-1;
+        var DEFAUT=false;
+        liste1 = new ListBox("listeFamille","liste1");
+        liste2 = new ListBox("listeModele","liste2");
+
+        sendMessage(socket,'INIT_FAMILLES');
+   }
+
+    function receive(event) {
+          const data = JSON.parse(event.data);
+          let tmp= JSON.parse(data.values);
+          console.log(data.cmd,data.ok);
+          if (data.cmd=="INIT_FAMILLES") {   liste1.setData(tmp);      }
+          if (data.cmd=="INIT_MODELES") {    liste2.setData(tmp);      }
+          if (data.cmd=="AJOUT_MODELE") { if (data.ok==1)  liste2.setData(tmp); }
+          if (data.cmd=="SUPPRIME_MODELE") { if (data.ok==1)  liste2.setData(tmp); }
+          if (data.cmd=="MODIF_MODELE") { if (data.ok==1)  liste2.setData(tmp); }
+        }
+{% endblock %}
+</html>
+

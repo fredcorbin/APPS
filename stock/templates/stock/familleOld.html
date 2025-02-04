@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w3-bar w3-black">
+  <a href="/" class="w3-bar-item w3-button">Home</a>
+  <a href="#" class="w3-bar-item w3-button">Familles</a>
+</div>
+
+
+
+
+
+<div id = "listeFamille" class="w3-sidebar w3-small w3-light-grey w3-bar-block" style="width:25%;top:76px; border: 1px solid black;">
+  {% for t in famille %}
+    <span id="fId{{t.id}}" onclick="selection(event)" class="w3-bar-item w3-button">{{ t.nom }}</span>
+    <span id="prefId{{t.id}}" class="hidden">{{t.pref}}</span>
+  {% endfor %}
+</div>
+
+<div class="w3-bar w3-black">
+    <button class="w3-bar-item w3-button" onclick="ajouter()">Ajouter</button>
+    <button class="w3-bar-item w3-button" onclick="modifier()">Modifier</button>
+    <button class="w3-bar-item w3-button" onclick="supprimer()">Supprimer</button>
+</div>
+
+<div style="margin-left:40%">
+    <div class="card w3-small" style="width: 400px; height:200px" >
+      <p>
+        <label for="nom">Nom de la Famille:</label>
+        <input type="text" id="nom" style="width:350px;" name="nom">
+      </p>
+      <p>   <label for="pref">préféré: </label>
+        <input type="checkbox" id="pref" "name="pref">
+
+      </p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+
+    window.addEventListener("onSelect", (event) => { listboxSelect(event.state); });
+    window.addEventListener("onClear", (event) => { listboxClear(event.state); });
+
+    window.addEventListener("load", (event) => {
+        var liste="";
+        var socket="";
+        init();
+   });
+
+   function init()  {
+        socket = new WebSocket('ws://' + window.location.host + '/ws/familles/');
+        socket.onmessage = receive ;
+        var ID=-1;
+        console.log("INIT");
+        liste = new ListBox("listeFamille","liste");
+        console.log("OK1");
+        sendMessage(socket,'INIT_FAMILLES');
+   }
+
+   function listboxClear(state) {
+       ID=-1;
+       document.getElementById("nom").value="";
+       document.getElementById("pref").checked=false;
+    }
+
+   function listboxSelect(state) {
+        IDFAMILLE=state.id;
+        console.log("select:",state.id,state.nom,state.pref);
+        document.getElementById("nom").value=state.nom;
+        document.getElementById("pref").checked= (state.pref==1);
+
+   }
+
+
+   function receive(event) {
+
+          const data = JSON.parse(event.data);
+          let tmp= JSON.parse(data.values);
+          console.log("RECEIVE DATA: ",data);
+          if (data.cmd=="INIT_FAMILLES") {   liste.setData(tmp);      }
+<!--          if (data.cmd=="ADDFAMILLE") {-->
+<!--              if (data.ok) {-->
+<!--                 let famille = document.getElementById("listeFamille");-->
+<!--                 insere_famille(famille,data,"1");-->
+<!--             }-->
+<!--          }-->
+<!--          if (data.cmd=="MODIFFAMILLE") {-->
+<!--              if (data.ok) {-->
+<!--                  let elem=document.getElementById(`fId${data.id}`);-->
+<!--                  elem.innerHTML=data.nom;-->
+<!--                  elem = document.getElementById(`prefId${data.id}`);-->
+<!--                  elem.innerHTML=data.pref;-->
+<!--                  console.log("receive.modifFamille: pref=",data.pref)-->
+<!--              }-->
+<!--          }-->
+<!--          if (data.cmd=="SUPPRIMEFAMILLE") {-->
+<!--              if (data.ok) {-->
+<!--              let ID1=`fId${data.id}`;-->
+<!--              let ID2=`prefId${data.id}`;-->
+<!--              const elem1=document.getElementById(ID1);-->
+<!--              const elem2=document.getElementById(ID2);-->
+<!--              elem1.remove();-->
+<!--              elem2.remove();-->
+<!--              }-->
+<!--          }-->
+        }
+
+
+
+
+
+
+{% endblock %}

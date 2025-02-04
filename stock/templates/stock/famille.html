@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w3-bar w3-black">
+  <a href="/" class="w3-bar-item w3-button">Home</a>
+  <a href="#" class="w3-bar-item w3-button">Familles</a>
+</div>
+
+<div class="w3-panel w3-small w3-card-4 w3-round-large w3-white" style="margin:20px; width:800px;  height:70%; display:flex">
+    <div class="w3-border" id="listeFamille" style="margin-top:15px; margin-bottom:15px; width:40%; "> </div>
+
+   <div class="w3-border w3-card"  style="margin:40px; margin-top: 100px; width:50%; height:200px;  display:flex; flex-direction:column">
+        <div class="w3-bar w3-black">
+            <button class="w3-bar-item w3-button" onclick="ajouter(); ">Ajouter</button>
+            <button class="w3-bar-item w3-button" onclick="modifier();">Modifier</button>
+            <button class="w3-bar-item w3-button" onclick="supprimer();">Supprimer</button>
+        </div>
+        <div class="w3-panel">
+
+            <label for="pref">Famille préférée:</label>
+            <input type="checkbox" id="pref" name="pref">
+            <p>NOM:</p>
+            <input class="w3-block w3-light-grey" type="text" id="nom"></input>
+        </div>
+   </div>
+</div>
+
+
+{% endblock %}
+
+{% block script %}
+
+    window.addEventListener("onSelect", (event) => { listboxSelect(event.state); });
+    window.addEventListener("onClear", (event) => { listboxClear(event.state); });
+
+    window.addEventListener("load", (event) => {
+        var liste="";
+        var socket="";
+        init();
+   });
+
+   function init()  {
+        socket = new WebSocket('ws://' + window.location.host + '/ws/familles/');
+        socket.onmessage = receive ;
+        var ID=-1;
+        console.log("INIT");
+        liste = new ListBox("listeFamille","liste");
+        console.log("OK1");
+        sendMessage(socket,'INIT_FAMILLES');
+   }
+
+   function listboxClear(state) {
+       ID=-1;
+       document.getElementById("nom").value="";
+       document.getElementById("pref").checked=false;
+    }
+
+   function listboxSelect(state) {
+        IDFAMILLE=state.id;
+        console.log("select:",state.id,state.nom,state.pref);
+        document.getElementById("nom").value=state.nom;
+        document.getElementById("pref").checked= (state.pref==1);
+
+   }
+
+   function ajouter() {
+        let nom= document.getElementById("nom").value;
+        let pref= document.getElementById("pref").checked
+        sendMessage(socket,`ADDFAMILLE${nom}${pref}`);
+   }
+
+   function modifier() {
+        let msg=`MODIFFAMILLE${nom}${IDFAMILLE}`
+        sendMessage(socket,msg);
+   }
+
+   function supprimer() {
+        let nom= document.getElementById("nom").value;
+        let pref= document.getElementById("pref").checked
+        let msg=`SUPPRIMEFAMILLE${nom}${pref}${IDFAMILLE}`
+        console.log(msg);
+        sendMessage(socket,msg);
+   }
+
+   function receive(event) {
+          const data = JSON.parse(event.data);
+          let tmp= JSON.parse(data.values);
+          console.log("RECEIVE DATA: ",data);
+          if (data.cmd=="INIT_FAMILLES") {   liste.setData(tmp); }
+          if (data.cmd=="ADDFAMILLE") {  if (data.ok)  liste.setData(tmp);   }
+          if (data.cmd=="SUPPRIMEFAMILLE") { if (data.ok)  liste.setData(tmp);   }
+          if (data.cmd=="MODIFFAMILLE") {if (data.ok) liste.setData(tmp);  }
+        }
+
+
+
+
+
+
+{% endblock %}
